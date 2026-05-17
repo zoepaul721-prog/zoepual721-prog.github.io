@@ -1,0 +1,643 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0,user-scalable=no">
+<title>日常请假系统</title>
+<style>
+*{
+    margin:0;
+    padding:0;
+    box-sizing:border-box;
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+}
+body{
+    background:#f5f6f8;
+    font-size:14px;
+    padding-bottom:80px;
+}
+/* 页面控制 */
+.page{
+    display:none;
+}
+.active{
+    display:block;
+}
+/* 顶部导航栏（完美还原微信原生双返回/关闭按钮布局） */
+.header {
+    height: 50px;
+    background: #fff;
+    display: flex;
+    align-items: center;
+    padding: 0 16px;
+    border-bottom: 1px solid #eee;
+    position: relative;
+}
+.header-left {
+    display: flex;
+    align-items: center;
+    gap: 18px;
+    z-index: 10;
+}
+.header-title {
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 17px;
+    font-weight: 500;
+    color: #000;
+    text-align: center;
+    width: 60%;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.header-right {
+    margin-left: auto;
+    font-size: 22px;
+    z-index: 10;
+    cursor: pointer;
+    color: #000;
+    letter-spacing: -1px;
+}
+.header-icon {
+    font-size: 20px;
+    cursor: pointer;
+    color: #000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+/* 口令层 */
+.password-layer{
+    position:fixed;
+    top:0;
+    left:0;
+    width:100%;
+    height:100%;
+    background:#fff;
+    display:flex;
+    flex-direction:column;
+    justify-content:center;
+    align-items:center;
+    z-index:999;
+}
+.password-input{
+    width:80%;
+    height:48px;
+    border:1px solid #ddd;
+    border-radius:10px;
+    padding:0 14px;
+    font-size:16px;
+    margin-top:25px;
+    outline:none;
+}
+.password-btn{
+    width:80%;
+    height:48px;
+    border:none;
+    border-radius:10px;
+    background:#4ecdc4;
+    color:#fff;
+    font-size:16px;
+    margin-top:15px;
+    cursor:pointer;
+}
+.password-tip{
+    color:red;
+    margin-top:10px;
+    display:none;
+}
+/* 表单页 */
+.form-page{
+    padding:20px;
+}
+.form-card{
+    background:#fff;
+    border-radius:14px;
+    padding:24px;
+}
+.form-item{
+    margin-bottom:26px;
+}
+.form-item label{
+    display:block;
+    color:#666;
+    margin-bottom:10px;
+}
+.form-item input,
+.form-item select{
+    width:100%;
+    border:none;
+    border-bottom:1px solid #eee;
+    height:40px;
+    font-size:16px;
+    outline:none;
+}
+.time-control{
+    display:flex;
+    justify-content:center;
+    align-items:center;
+    gap:30px;
+}
+.time-btn{
+    width:42px;
+    height:42px;
+    border-radius:50%;
+    border:none;
+    background:#e8f8f7;
+    color:#4ecdc4;
+    font-size:22px;
+    cursor:pointer;
+}
+.toggle-row{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+}
+.toggle-switch{
+    width:54px;
+    height:30px;
+    border-radius:30px;
+    background:#ddd;
+    position:relative;
+    cursor:pointer;
+}
+.toggle-switch::after{
+    content:"";
+    width:26px;
+    height:26px;
+    border-radius:50%;
+    background:#fff;
+    position:absolute;
+    left:2px;
+    top:2px;
+    transition:0.3s;
+}
+.btn-generate{
+    width:100%;
+    height:50px;
+    border:none;
+    border-radius:12px;
+    background:#4ecdc4;
+    color:#fff;
+    font-size:17px;
+    margin-top:28px;
+    cursor:pointer;
+}
+.btn-history{
+    width:100%;
+    height:50px;
+    border-radius:12px;
+    border:1px solid #4ecdc4;
+    background:#fff;
+    color:#4ecdc4;
+    font-size:17px;
+    margin-top:14px;
+    cursor:pointer;
+}
+/* 历史页列表条目 */
+.leave-item{
+    background:#fff;
+    padding:20px 22px;
+    position:relative;
+    overflow:hidden;
+    border-bottom:8px solid #f5f6f8;
+}
+.item-row{
+    display:flex;
+    margin:14px 0;
+    line-height:1.4;
+}
+.label{
+    width:105px;
+    color:#333;
+}
+.content{
+    flex:1;
+    color:#333;
+}
+.detail-link{
+    color:#67d7d0;
+    font-size:14px;
+    margin-left:auto;
+    cursor:pointer;
+}
+/* 右下角状态标签（严格对照图片进行像素级微调与完美文字居中） */
+.status-tag{
+    position:absolute;
+    right:-26px;
+    bottom:14px;
+    width:96px;
+    height:22px;
+    transform:rotate(-45deg);
+    color:#fff;
+    display:flex;
+    justify-content:center;
+    align-items:center;
+    font-size:11px;
+    font-weight:500;
+    z-index:1;
+    cursor:pointer;
+    text-align:center;
+}
+/* 调至与原图完全一致的高级质感淡紫色与淡橘色 */
+.tag-pending{
+    background:#ff9c6e;
+}
+.tag-finished{
+    background:#b286fd;
+}
+/* 底部按钮 */
+.bottom-btn{
+    position:fixed;
+    bottom:0;
+    left:0;
+    width:100%;
+    height:58px;
+    border:none;
+    background:linear-gradient(90deg,#52d8c8,#49b6ff);
+    color:#fff;
+    font-size:18px;
+    z-index:999;
+    cursor:pointer;
+}
+/* 详情页 */
+.detail-page{
+    background:#f5f6f8;
+    min-height:100vh;
+}
+.section-title{
+    background:#ececee;
+    height:42px;
+    line-height:42px;
+    padding-left:16px;
+    color:#666;
+    font-size:13px;
+}
+.detail-item{
+    background:#fff;
+    min-height:52px;
+    display:flex;
+    align-items:center;
+    padding:0 16px;
+    border-bottom:1px solid #f5f5f5;
+}
+.detail-label{
+    width:140px;
+    color:#333;
+    font-size:14px;
+}
+.detail-value{
+    flex:1;
+    color:#777;
+    font-size:14px;
+}
+.detail-input{
+    flex:1;
+    border:none;
+    outline:none;
+    font-size:14px;
+    color:#777;
+    background:transparent;
+}
+.radio-group{
+    display:flex;
+    gap:50px;
+    color:#777;
+}
+</style>
+</head>
+<body>
+
+<div class="password-layer" id="passwordLayer">
+    <h2 style="font-weight:500; color:#333;">请输入访问口令</h2>
+    <input type="password" class="password-input" id="passwordInput" placeholder="请输入口令">
+    <button class="password-btn" onclick="checkPassword()">进入系统</button>
+    <div class="password-tip" id="passwordTip">口令错误</div>
+</div>
+
+<div id="page1" class="page active">
+    <div class="header">
+        <div class="header-left">
+            <div class="header-icon">&lt;</div>
+        </div>
+        <div class="header-title">日常请假系统</div>
+        <div class="header-right" style="font-size:24px; line-height:1;">×</div>
+    </div>
+    <div class="form-page">
+        <div class="form-card">
+            <div class="form-item">
+                <label>姓名</label>
+                <input type="text" id="userName">
+            </div>
+            <div class="form-item">
+                <label>学号</label>
+                <input type="text" id="userId">
+            </div>
+            <div class="form-item">
+                <label>请假原因</label>
+                <select id="leaveReason">
+                    <option value="节假日外出">节假日外出</option>
+                    <option value="周末外出">周末外出</option>
+                    <option value="病假">病假</option>
+                    <option value="事假">事假</option>
+                </select>
+            </div>
+            <div class="form-item">
+                <label>请假时长</label>
+                <div class="time-control">
+                    <button class="time-btn" onclick="changeTime(-1)">−</button>
+                    <div id="timeDisplay" style="font-size:16px; font-weight:500; color:#333;">8 小时</div>
+                    <button class="time-btn" onclick="changeTime(1)">+</button>
+                </div>
+            </div>
+            <div class="form-item toggle-row">
+                <label>是否续假</label>
+                <div class="toggle-switch" id="toggleBtn" onclick="toggleSwitch()"></div>
+            </div>
+        </div>
+        <button class="btn-generate" onclick="generateLeave()">生成请假条</button>
+        <button class="btn-history" onclick="showHistory()">查看历史记录 (0)</button>
+    </div>
+</div>
+
+<div id="page3" class="page">
+    <div class="header">
+        <div class="header-left">
+            <div class="header-icon" onclick="backForm()">&lt;</div>
+            <div class="header-icon" onclick="backForm()" style="font-size:24px; margin-left:2px; font-weight:300;">×</div>
+        </div>
+        <div class="header-title">日常请假列表</div>
+        <div class="header-right" style="font-weight:bold;">•••</div>
+    </div>
+    <div id="historyList"></div>
+    <button class="bottom-btn">提交续假</button>
+</div>
+
+<div id="page4" class="page detail-page">
+    <div class="header">
+        <div class="header-left">
+            <div class="header-icon" onclick="backHistory()">&lt;</div>
+        </div>
+        <div class="header-title">日常请假详情</div>
+        <div class="header-right" style="font-weight:bold;">•••</div>
+    </div>
+    
+    <div class="section-title">请假信息</div>
+    <div class="detail-item">
+        <div class="detail-label">*学期</div>
+        <div class="detail-value">2025–2026学年第二学期</div>
+    </div>
+    <div class="detail-item">
+        <div class="detail-label">*请假时间</div>
+        <div class="detail-value" id="detailTime"></div>
+    </div>
+    <div class="detail-item">
+        <div class="detail-label">共计</div>
+        <div class="detail-value" id="detailDuration"></div>
+    </div>
+    <div class="detail-item">
+        <div class="detail-label">*请假类型</div>
+        <div class="detail-value">校外</div>
+    </div>
+    <div class="detail-item">
+        <div class="detail-label">*请假原因</div>
+        <div class="detail-value" id="detailReason"></div>
+    </div>
+    <div class="detail-item">
+        <div class="detail-label">详细说明</div>
+        <div class="detail-value">事假外出</div>
+    </div>
+    <div class="detail-item">
+        <div class="detail-label">本人移动电话</div>
+        <div class="detail-value">18975684512</div>
+    </div>
+    <div class="detail-item">
+        <div class="detail-label">*是否已告知监护人</div>
+        <div class="radio-group">
+            <div>◉ 是</div>
+            <div>○ 否</div>
+        </div>
+    </div>
+    <div class="detail-item">
+        <div class="detail-label">监护人姓名</div>
+        <div class="detail-value">范冰冰</div>
+    </div>
+    <div class="detail-item">
+        <div class="detail-label">监护人电话</div>
+        <div class="detail-value">18898756421</div>
+    </div>
+    
+    <div class="section-title">外出信息</div>
+    <div class="detail-item">
+        <div class="detail-label">*是否离校</div>
+        <div class="radio-group">
+            <div>◉ 是</div>
+            <div>○ 否</div>
+        </div>
+    </div>
+    <div class="detail-item">
+        <div class="detail-label">*是否离开廊坊</div>
+        <div class="radio-group">
+            <div>○ 是</div>
+            <div>◉ 否</div>
+        </div>
+    </div>
+    <div class="detail-item">
+        <div class="detail-label">外出地点</div>
+        <div class="detail-value">廊坊市人民医院</div>
+    </div>
+    <div class="detail-item">
+        <div class="detail-label">外出详细地点</div>
+        <input class="detail-input" placeholder="请输入">
+    </div>
+    <div class="detail-item">
+        <div class="detail-label">外出时间</div>
+        <div class="detail-value" id="detailOutTime"></div>
+    </div>
+    <div class="detail-item">
+        <div class="detail-label">外出方式（去）</div>
+        <div class="detail-value">步行</div>
+    </div>
+    <div class="detail-item">
+        <div class="detail-label">外出方式（回）</div>
+        <div class="detail-value">步行</div>
+    </div>
+    <div class="detail-item">
+        <div class="detail-label">是否结伴同行</div>
+        <div class="radio-group">
+            <div>○ 是</div>
+            <div>◉ 否</div>
+        </div>
+    </div>
+</div>
+
+<script>
+function showPage(id){
+    document.querySelectorAll('.page').forEach(page=>page.classList.remove('active'));
+    document.getElementById(id).classList.add('active');
+}
+
+function checkPassword(){
+    const input = document.getElementById('passwordInput').value;
+    if(input === '9169'){
+        document.getElementById('passwordLayer').style.display='none';
+        updateHistoryCount();
+    }else{
+        document.getElementById('passwordTip').style.display='block';
+    }
+}
+
+let leaveTime = 8;
+function changeTime(num){
+    leaveTime += num;
+    if(leaveTime < 1) leaveTime = 1;
+    if(leaveTime > 24) leaveTime = 24;
+    document.getElementById('timeDisplay').innerText = leaveTime + ' 小时';
+}
+
+let isContinue = false;
+function toggleSwitch(){
+    isContinue = !isContinue;
+    const btn = document.getElementById('toggleBtn');
+    if(isContinue){
+        btn.style.background='#4ecdc4';
+        btn.style.boxShadow='inset 24px 0 #fff';
+    }else{
+        btn.style.background='#ddd';
+        btn.style.boxShadow='none';
+    }
+}
+
+function formatTime(date){
+    const y=date.getFullYear();
+    const m=String(date.getMonth()+1).padStart(2,'0');
+    const d=String(date.getDate()).padStart(2,'0');
+    const h=String(date.getHours()).padStart(2,'0');
+    const min=String(date.getMinutes()).padStart(2,'0');
+    return `${y}-${m}-${d} ${h}:${min}`;
+}
+
+function generateLeave(){
+    const name = document.getElementById('userName').value || '';
+    const id = document.getElementById('userId').value || '';
+    const reason = document.getElementById('leaveReason').value;
+    const now = new Date();
+    const end = new Date(now.getTime()+leaveTime*3600000);
+    
+    let history = JSON.parse(localStorage.getItem('leaveHistory')||'[]');
+    history = history.map(item=>{
+        item.name=name;
+        item.userId=id;
+        return item;
+    });
+    
+    const data={
+        id:Date.now(),
+        name:name,
+        userId:id,
+        startTime:formatTime(now),
+        endTime:formatTime(end),
+        duration:`0天${leaveTime}小时`,
+        reason:`校外:${reason}`,
+        isContinue:isContinue?'是':'否',
+        status:'待销假'
+    };
+    history.unshift(data);
+    localStorage.setItem('leaveHistory',JSON.stringify(history));
+    showHistory();
+    updateHistoryCount();
+}
+
+function updateHistoryCount(){
+    const history = JSON.parse(localStorage.getItem('leaveHistory')||'[]');
+    document.querySelector('.btn-history').innerText=`查看历史记录 (${history.length})`;
+}
+
+function showHistory(){
+    showPage('page3');
+    renderHistory();
+}
+
+function backForm(){
+    showPage('page1');
+}
+
+function backHistory(){
+    showPage('page3');
+}
+
+function renderHistory(){
+    const history = JSON.parse(localStorage.getItem('leaveHistory')||'[]');
+    const list = document.getElementById('historyList');
+    list.innerHTML='';
+    
+    history.forEach(item=>{
+        const statusClass = item.status==='待销假'?'tag-pending':'tag-finished';
+        const html=`
+        <div class="leave-item">
+            <div class="status-tag ${statusClass}" onclick="toggleStatus(${item.id})">
+                ${item.status}
+            </div>
+            <div class="item-row">
+                <div class="label">学号</div>
+                <div class="content">${item.userId}</div>
+                <div class="detail-link" onclick="openDetail(${item.id})">查看详情＞</div>
+            </div>
+            <div class="item-row">
+                <div class="label">姓名</div>
+                <div class="content">${item.name}</div>
+            </div>
+            <div class="item-row">
+                <div class="label">请假时间</div>
+                <div class="content">${item.startTime}至${item.endTime}</div>
+            </div>
+            <div class="item-row">
+                <div class="label">请假时长</div>
+                <div class="content">${item.duration}</div>
+            </div>
+            <div class="item-row">
+                <div class="label">是否续假</div>
+                <div class="content">${item.isContinue}</div>
+            </div>
+            <div class="item-row">
+                <div class="label">请假原因</div>
+                <div class="content">${item.reason}</div>
+            </div>
+            <div class="item-row">
+                <div class="label">销假状态</div>
+                <div class="content">${item.status}</div>
+            </div>
+        </div>
+        `;
+        list.innerHTML += html;
+    });
+    list.style.paddingBottom = '120px';
+}
+
+function toggleStatus(id){
+    let history = JSON.parse(localStorage.getItem('leaveHistory')||'[]');
+    history = history.map(item=>{
+        if(item.id===id){
+            item.status = item.status==='待销假'?'已销假':'待销假';
+        }
+        return item;
+    });
+    localStorage.setItem('leaveHistory',JSON.stringify(history));
+    renderHistory();
+}
+
+function openDetail(id){
+    const history = JSON.parse(localStorage.getItem('leaveHistory')||'[]');
+    const item = history.find(v=>v.id===id);
+    if(!item) return;
+    document.getElementById('detailTime').innerText = `${item.startTime} 至 ${item.endTime}`;
+    document.getElementById('detailDuration').innerText = item.duration;
+    document.getElementById('detailReason').innerText = item.reason.replace('校外:','');
+    document.getElementById('detailOutTime').innerText = `${item.startTime} 至 ${item.endTime}`;
+    showPage('page4');
+}
+</script>
+</body>
+</html>

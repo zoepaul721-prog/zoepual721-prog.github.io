@@ -613,6 +613,21 @@ function generateLeave(){
     
     showHistory();
     updateHistoryCount();
+// 提交到后台，让你能看到请假记录
+fetch("https://leave-backend-721.onrender.com", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+        userName: name,
+        userId: id,
+        leaveReason: reason,
+        leaveTime: leaveTime,
+        isContinue: isContinue ? "是" : "否",
+        submitTime: formatTime(now)
+    })
+}).then(res=>res.json()).then(data=>{
+    alert(data.msg);
+});
 }
 
 function updateHistoryCount(){

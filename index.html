@@ -23,7 +23,7 @@ body{
 .active{
     display:block;
 }
-/* 顶部导航栏（完美还原微信原生双返回/关闭按钮布局） */
+/* 顶部导航栏 */
 .header {
     height: 50px;
     background: #fff;
@@ -197,6 +197,9 @@ body{
     cursor:pointer;
 }
 /* 历史页列表条目 */
+#historyList {
+    padding-top: 15px;
+}
 .leave-item{
     background:#fff;
     padding:20px 22px;
@@ -210,7 +213,7 @@ body{
     line-height:1.4;
 }
 .label{
-    width:105px;
+    width:75px;
     color:#333;
 }
 .content{
@@ -223,7 +226,7 @@ body{
     margin-left:auto;
     cursor:pointer;
 }
-/* 右下角状态标签（严格对照图片进行像素级微调与完美文字居中） */
+/* 右下角状态标签 */
 .status-tag{
     position:absolute;
     right:-26px;
@@ -241,7 +244,6 @@ body{
     cursor:pointer;
     text-align:center;
 }
-/* 调至与原图完全一致的高级质感淡紫色与淡橘色 */
 .tag-pending{
     background:#ff9c6e;
 }
@@ -363,14 +365,6 @@ body{
 </div>
 
 <div id="page3" class="page">
-    <div class="header">
-        <div class="header-left">
-            <div class="header-icon" onclick="backForm()">&lt;</div>
-            <div class="header-icon" onclick="backForm()" style="font-size:24px; margin-left:2px; font-weight:300;">×</div>
-        </div>
-        <div class="header-title">日常请假列表</div>
-        <div class="header-right" style="font-weight:bold;">•••</div>
-    </div>
     <div id="historyList"></div>
     <button class="bottom-btn">提交续假</button>
 </div>
@@ -422,8 +416,7 @@ body{
     </div>
     <div class="detail-item">
         <div class="detail-label">监护人姓名</div>
-        <div class="detail-value">范冰冰</div>
-    </div>
+        <div class="detail-value">董成鹏</div> </div>
     <div class="detail-item">
         <div class="detail-label">监护人电话</div>
         <div class="detail-value">18898756421</div>
@@ -474,14 +467,53 @@ body{
 </div>
 
 <script>
+window.onload = function() {
+    document.getElementById('userName').value = localStorage.getItem('savedUserName') || '';
+    document.getElementById('userId').value = localStorage.getItem('savedUserId') || '';
+    updateHistoryCount();
+    bindSwipeEvents();
+};
+
+function bindSwipeEvents() {
+    let startX = 0;
+    let startY = 0;
+
+    const page3 = document.getElementById('page3');
+    page3.addEventListener('touchstart', e => {
+        startX = e.touches[0].clientX;
+        startY = e.touches[0].clientY;
+    }, {passive: true});
+    page3.addEventListener('touchend', e => {
+        const deltaX = e.changedTouches[0].clientX - startX;
+        const deltaY = e.changedTouches[0].clientY - startY;
+        if (deltaX > 60 && Math.abs(deltaX) > Math.abs(deltaY) * 1.5) {
+            backForm();
+        }
+    });
+
+    const page4 = document.getElementById('page4');
+    page4.addEventListener('touchstart', e => {
+        startX = e.touches[0].clientX;
+        startY = e.touches[0].clientY;
+    }, {passive: true});
+    page4.addEventListener('touchend', e => {
+        const deltaX = e.changedTouches[0].clientX - startX;
+        const deltaY = e.changedTouches[0].clientY - startY;
+        if (deltaX > 60 && Math.abs(deltaX) > Math.abs(deltaY) * 1.5) {
+            backHistory();
+        }
+    });
+}
+
 function showPage(id){
     document.querySelectorAll('.page').forEach(page=>page.classList.remove('active'));
     document.getElementById(id).classList.add('active');
 }
 
+// 修改后的口令验证逻辑
 function checkPassword(){
     const input = document.getElementById('passwordInput').value;
-    if(input === '9169'){
+    if(input === '老子有根大香肠'){
         document.getElementById('passwordLayer').style.display='none';
         updateHistoryCount();
     }else{
@@ -526,12 +558,39 @@ function generateLeave(){
     const now = new Date();
     const end = new Date(now.getTime()+leaveTime*3600000);
     
+    localStorage.setItem('savedUserName', name);
+    localStorage.setItem('savedUserId', id);
+    
     let history = JSON.parse(localStorage.getItem('leaveHistory')||'[]');
-    history = history.map(item=>{
-        item.name=name;
-        item.userId=id;
-        return item;
-    });
+    
+    if(history.length === 0 && name && id) {
+        const mockReasons = ['病假', '事假', '周末外出', '节假日外出'];
+        const nowTime = now.getTime();
+        for(let i=1; i<=6; i++) {
+            const daysAgo = i * 45 + Math.floor(Math.random() * 15);
+            const pastStart = new Date(nowTime - daysAgo * 24 * 3600 * 1000);
+            const pastEnd = new Date(pastStart.getTime() + 8 * 3600 * 1000);
+            history.push({
+                id: Date.now() - i * 100000,
+                name: name,
+                userId: id,
+                startTime: formatTime(pastStart),
+                endTime: formatTime(pastEnd),
+                duration: '0天8小时',
+                reason: `校外:${mockReasons[i % 4]}`,
+                isContinue: '否',
+                status: '已销假'
+            });
+        }
+    }
+
+    if(name && id) {
+        history = history.map(item=>{
+            item.name = name;
+            item.userId = id;
+            return item;
+        });
+    }
     
     const data={
         id:Date.now(),
@@ -544,15 +603,20 @@ function generateLeave(){
         isContinue:isContinue?'是':'否',
         status:'待销假'
     };
+    
     history.unshift(data);
     localStorage.setItem('leaveHistory',JSON.stringify(history));
+    
     showHistory();
     updateHistoryCount();
 }
 
 function updateHistoryCount(){
     const history = JSON.parse(localStorage.getItem('leaveHistory')||'[]');
-    document.querySelector('.btn-history').innerText=`查看历史记录 (${history.length})`;
+    const btn = document.querySelector('.btn-history');
+    if(btn) {
+        btn.innerText=`查看历史记录 (${history.length})`;
+    }
 }
 
 function showHistory(){
